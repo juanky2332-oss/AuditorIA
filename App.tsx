@@ -5,125 +5,99 @@ import ReportSection from './components/ReportSection';
 import { AuditContext, FoodSafetyAuditReport } from './types';
 import { generateAuditReport } from './services/geminiService';
 
-const App: React.FC = () => {
-  const [auditReport, setAuditReport] = useState<FoodSafetyAuditReport | null>(null);
-  const [context, setContext] = useState<AuditContext | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  
-  // Scanning State
-  const [scanProgress, setScanProgress] = useState(0);
-  const [scanText, setScanText] = useState("INICIANDO...");
+function App() {
+  const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState(0); // Estado para la barra
+  const [report, setReport] = useState<FoodSafetyAuditReport | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [materialName, setMaterialName] = useState('');
 
-  // Progress Bar Simulation Logic
+  // EFECTO PARA SIMULAR PROGRESO REALISTA
   useEffect(() => {
     let interval: any;
-    if (isLoading) {
-      setScanProgress(0);
-      const steps = [
-        "PROCESANDO DOCUMENTOS...",
-        "ANALIZANDO TEXTO TÉCNICO...",
-        "VERIFICANDO NORMATIVA VIGENTE...",
-        "VALIDANDO COMPATIBILIDAD...",
-        "GENERANDO INFORME TÉCNICO..."
-      ];
-      
-      let stepIndex = 0;
+    if (loading) {
+      setProgress(10); // Empieza en 10%
       interval = setInterval(() => {
-        setScanProgress(prev => {
-          if (prev >= 90) return prev; // Hold at 90% until API finishes
-          return prev + 1; // Slow increment
+        setProgress((prev) => {
+          // Sube rápido al principio, luego se frena en el 85%
+          if (prev < 60) return prev + 5;
+          if (prev < 85) return prev + 1;
+          return prev; // Se queda esperando en 85-90%
         });
-        
-        // Update text based on progress roughly
-        if (scanProgress % 20 === 0) {
-             setScanText(steps[stepIndex % steps.length]);
-             stepIndex++;
-        }
-      }, 50);
+      }, 500);
     } else {
-      setScanProgress(100);
+      setProgress(100); // Al terminar, 100%
+      // Resetear barra después de un momento
+      setTimeout(() => setProgress(0), 1000);
     }
     return () => clearInterval(interval);
-  }, [isLoading, scanProgress]);
+  }, [loading]);
 
-  const handleAnalyze = async (ctx: AuditContext) => {
-    setIsLoading(true);
-    setContext(ctx);
-    setAuditReport(null);
+  const handleAuditRequest = async (context: AuditContext) => {
+    setLoading(true);
+    setError(null);
+    setReport(null);
+    setMaterialName(context.materialName || 'Material');
 
     try {
-      const report = await generateAuditReport(ctx);
-      setAuditReport(report);
+      const result = await generateAuditReport(context);
+      setReport(result);
     } catch (err: any) {
-      alert("Error en el servicio de auditoría: " + err.message);
+      console.error(err);
+      setError(err.message || "Error desconocido al generar el informe.");
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen bg-[#020617] text-slate-200 font-sans selection:bg-blue-500/30">
       <Header />
-      
-      <main className="flex-grow container mx-auto px-4 py-8 md:py-12 flex flex-col items-center justify-center relative">
+
+      <main className="container mx-auto px-4 py-12 flex flex-col items-center gap-12">
         
-        {!auditReport && !isLoading && (
-          <div className="text-center max-w-4xl mb-12 space-y-4 animate-fade-in">
-             <h2 className="text-3xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-400 tracking-tight">
-                Validación Técnica & Seguridad Alimentaria
-            </h2>
-            <p className="text-slate-400 text-lg font-light max-w-2xl mx-auto">
-                Auditoría experta de materiales según ISO 22000, IFS, BRC y Reg. 1935/2004.
+        {!report && (
+          <div className="w-full max-w-2xl animate-fade-in-up">
+            <InputSection 
+                onAuditRequest={handleAuditRequest} 
+                isLoading={loading} 
+            />
+          </div>
+        )}
+
+        {/* BARRA DE PROGRESO MEJORADA */}
+        {loading && (
+          <div className="w-full max-w-md space-y-3 animate-pulse">
+            <div className="flex justify-between text-xs font-mono text-blue-400 uppercase">
+                <span>Analizando documentación...</span>
+                <span>{progress}%</span>
+            </div>
+            <div className="h-2 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
+              <div 
+                className="h-full bg-gradient-to-r from-blue-600 to-cyan-400 transition-all duration-500 ease-out shadow-[0_0_15px_rgba(56,189,248,0.5)]"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+            <p className="text-center text-xs text-slate-500 animate-bounce mt-2">
+                Consultando normativas FDA / UE 10/2011...
             </p>
           </div>
         )}
 
-        {/* Input Form */}
-        {!auditReport && !isLoading && (
-             <div className="w-full max-w-3xl">
-                <InputSection onAnalyze={handleAnalyze} isLoading={isLoading} />
-             </div>
-        )}
-
-        {/* Loading / Scanning State */}
-        {isLoading && (
-            <div className="w-full max-w-2xl mt-8 animate-fade-in">
-                <div className="flex justify-between text-xs font-mono text-blue-400 mb-2">
-                    <span className="animate-pulse">{scanText}</span>
-                    <span>{scanProgress}%</span>
-                </div>
-                <div className="w-full bg-slate-800 rounded-full h-1 overflow-hidden border border-slate-700">
-                    <div 
-                        className="bg-blue-500 h-1 rounded-full transition-all duration-300 shadow-[0_0_10px_#3b82f6]"
-                        style={{ width: `${scanProgress}%` }}
-                    ></div>
-                </div>
-            </div>
-        )}
-
-        {/* Results */}
-        {!isLoading && auditReport && context && (
-          <div className="w-full mt-8 animate-fade-in">
-             <div className="flex justify-center mb-8">
-                <button 
-                  onClick={() => setAuditReport(null)}
-                  className="text-slate-400 hover:text-white text-xs font-mono border border-slate-700 px-6 py-2 rounded hover:border-blue-500 transition-colors flex items-center gap-2"
-                >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-                  NUEVA CONSULTA
-                </button>
-             </div>
-             <ReportSection report={auditReport} materialName={context.materialName} />
+        {error && (
+          <div className="w-full max-w-2xl bg-red-950/30 border border-red-800/50 text-red-300 p-4 rounded-lg text-sm flex items-center gap-3 animate-shake">
+            <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            {error}
           </div>
         )}
-        
-      </main>
 
-      <footer className="text-center py-6 text-slate-600 text-[10px] font-mono border-t border-slate-800/50 mt-auto">
-        <p>IndustrIA SYSTEM v3.0 // SECURE AUDIT PROTOCOL</p>
-      </footer>
+        {report && (
+            <ReportSection report={report} materialName={materialName} />
+        )}
+
+      </main>
     </div>
   );
-};
+}
 
 export default App;
