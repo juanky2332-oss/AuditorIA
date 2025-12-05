@@ -1,9 +1,8 @@
-
 export enum AuditResultType {
   APTO = 'APTO',
-  APTO_CONDICIONADO = 'APTO CONDICIONADO',
-  NO_APTO = 'NO APTO',
-  NO_APLICA = 'NO APLICA'
+  APTO_CONDICIONADO = 'APTO_CONDICIONADO', // Corregido: debe coincidir con el JSON Schema
+  NO_APTO = 'NO_APTO',                     // Corregido
+  NO_APLICA = 'NO_APLICA'                  // Corregido
 }
 
 export enum MaterialContactType {
@@ -14,10 +13,10 @@ export enum MaterialContactType {
 }
 
 export interface FoodSafetyAuditReport {
-  materialClassification: string; // Explicación general
+  materialClassification: string;
   recommendedFamily: string;
-  directContactVerdict: AuditResultType; // Veredicto específico DIRECTO
-  indirectContactVerdict: AuditResultType; // Veredicto específico INDIRECTO
+  directContactVerdict: AuditResultType;
+  indirectContactVerdict: AuditResultType;
   technicalJustification: string;
   detectedRisks: string[];
   missingDocumentation: string[];
@@ -26,7 +25,6 @@ export interface FoodSafetyAuditReport {
 }
 
 export interface FileData {
-  name: string;
   mimeType: string;
   data: string; // Base64 string
 }
