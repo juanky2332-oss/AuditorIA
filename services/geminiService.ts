@@ -1,155 +1,136 @@
-
-import { GoogleGenAI, Type, Schema } from "@google/genai";
+// services/openaiService.ts (o sobrescribe geminiService.ts)
+import OpenAI from "openai";
 import { AuditContext, FoodSafetyAuditReport, AuditResultType } from "../types";
 
-const API_KEY = process.env.API_KEY;
-
-// Schema definition
-const auditResponseSchema: Schema = {
-  type: Type.OBJECT,
-  properties: {
-    materialClassification: {
-      type: Type.STRING,
-      description: "Resumen breve del tipo de material detectado.",
-    },
-    recommendedFamily: {
-      type: Type.STRING,
-      description: "Familia industrial recomendada (Ej: Tornillería, Transmisiones, Neumática, Juntas, EPP, Lubricantes).",
-    },
-    directContactVerdict: {
-      type: Type.STRING,
-      enum: [AuditResultType.APTO, AuditResultType.APTO_CONDICIONADO, AuditResultType.NO_APTO, AuditResultType.NO_APLICA],
-      description: "Veredicto estricto para contacto DIRECTO con alimento.",
-    },
-    indirectContactVerdict: {
-      type: Type.STRING,
-      enum: [AuditResultType.APTO, AuditResultType.APTO_CONDICIONADO, AuditResultType.NO_APTO, AuditResultType.NO_APLICA],
-      description: "Veredicto estricto para contacto INDIRECTO (accidental, entorno, encima de línea).",
-    },
-    technicalJustification: {
-      type: Type.STRING,
-      description: "Justificación técnica lógica basada en reglamentos explicando por qué se aprueba o rechaza cada tipo de contacto.",
-    },
-    detectedRisks: {
-      type: Type.ARRAY,
-      items: { type: Type.STRING },
-      description: "Lista de riesgos reales detectados.",
-    },
-    missingDocumentation: {
-      type: Type.ARRAY,
-      items: { type: Type.STRING },
-      description: "Documentación necesaria que no se ha encontrado.",
-    },
-    recommendations: {
-      type: Type.ARRAY,
-      items: { type: Type.STRING },
-      description: "Acciones recomendadas sensatas.",
-    },
-    finalConclusion: {
-      type: Type.STRING,
-      description: "Conclusión profesional. Debe mencionar explícitamente si se autoriza la compra y bajo qué condiciones de uso (Directo vs Indirecto).",
-    },
-  },
-  required: [
-    "materialClassification",
-    "recommendedFamily",
-    "directContactVerdict",
-    "indirectContactVerdict",
-    "technicalJustification",
-    "detectedRisks",
-    "missingDocumentation",
-    "recommendations",
-    "finalConclusion"
-  ],
-};
+// Inicializar cliente. Asegúrate de tener OPENAI_API_KEY en Vercel
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 const SYSTEM_INSTRUCTION = `
-Eres **IndustrIA**, un auditor técnico senior especializado en ingeniería de materiales y seguridad alimentaria.
-Estás ubicado en **Murcia, España**.
-La fecha actual es **4 de Diciembre de 2025**.
+Eres **IndustrIA**, un auditor técnico senior especializado en seguridad alimentaria en Murcia, España (Fecha: 4 Dic 2025).
 
-**TU MISIÓN:**
-Evaluar materiales industriales y determinar claramente su aptitud para dos escenarios distintos:
-1. **CONTACTO DIRECTO:** El material toca físicamente el alimento.
-2. **CONTACTO INDIRECTO:** El material está en el entorno, encima de líneas abiertas, o hay riesgo de contacto accidental.
+TU MISIÓN:
+Evaluar materiales para:
+1. **CONTACTO DIRECTO** (toca alimento). Exige Reg. 1935/2004, 10/2011, FDA.
+2. **CONTACTO INDIRECTO** (entorno/accidental). Acepta higiene general, lubricantes H1, etc.
 
-**CRITERIOS DE AUDITORÍA:**
-- Analiza Fichas Técnicas y Certificados.
-- **DIRECTO:** Requiere cumplimiento estricto Reg. 1935/2004, Reg. 10/2011 (plásticos), FDA, migración global/específica declarada.
-- **INDIRECTO:** Puede ser apto si cumple criterios de higiene general, ausencia de sustancias tóxicas volátiles, lubricantes H1, etc., aunque no tenga migración específica.
-- **NO APTO:** Materiales sucios, oxidables, madera (salvo excepciones), vidrio no protegido, materiales sin trazabilidad.
-
-**RESULTADOS POSIBLES:**
-- **APTO:** Cumple normativa sobradamente.
-- **APTO CONDICIONADO:** Cumple pero falta algún documento menor (ej: renovar DoC antigua) o requiere limpieza previa.
-- **NO APTO:** Riesgo de seguridad alimentaria.
-- **NO APLICA:** Para materiales que no tienen sentido en esa categoría (ej: un rodamiento interno sellado podría ser NO APLICA para directo, pero APTO para indirecto).
-
-**IMPORTANTE:**
-- Sé muy claro diferenciando los dos tipos de contacto.
-- Si un material es para uso estructural lejos de la línea, será NO APTO (o NO APLICA) para directo, y APTO para indirecto/sin contacto.
-- Clasifica la familia correctamente.
-
-**TONO:**
-Profesional, técnico, riguroso.
+RESULTADOS: APTO, APTO CONDICIONADO, NO APTO, NO APLICA.
+Sé riguroso. Si es estructural lejos de línea -> NO APLICA directo / APTO indirecto.
 `;
 
 export const generateAuditReport = async (context: AuditContext): Promise<FoodSafetyAuditReport> => {
-  if (!API_KEY) {
-    throw new Error("API Key is missing");
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error("OPENAI_API_KEY is missing in environment variables");
   }
 
-  const ai = new GoogleGenAI({ apiKey: API_KEY });
+  // 1. Construir el mensaje de usuario con texto e imágenes
+  const userContent: any[] = [
+    {
+      type: "text",
+      text: `
+      SOLICITUD DE AUDITORÍA:
+      Item: ${context.materialName || "Detectar de imagen"}
+      Uso: ${context.intendedUse || "No especificado"}
+      Notas Técnicas: "${context.technicalData}"
+      
+      Analiza las imágenes adjuntas (si las hay) y los datos. Genera dictamen JSON.`
+    }
+  ];
 
-  const parts: any[] = [];
-
-  // Text Part
-  const textPrompt = `
-    SOLICITUD DE AUDITORÍA TÉCNICA - INDUSTRIA.
-    
-    Item/Material: ${context.materialName || "No especificado (Detectar del archivo)"}
-    Uso declarado: ${context.intendedUse || "No especificado"}
-    
-    NOTAS DEL USUARIO:
-    "${context.technicalData}"
-    
-    Analiza la documentación adjunta (si existe) y los datos proporcionados.
-    Genera el dictamen diferenciado para Contacto Directo e Indirecto.
-  `;
-
-  parts.push({ text: textPrompt });
-
-  // Files Part
+  // 2. Adjuntar imágenes si existen (OpenAI solo acepta imágenes en base64 data-url)
   if (context.filesData && context.filesData.length > 0) {
-    context.filesData.forEach(file => {
-      parts.push({
-        inlineData: {
-          mimeType: file.mimeType,
-          data: file.data
-        }
-      });
+    context.filesData.forEach((file) => {
+      // FILTRO: OpenAI Vision solo soporta imágenes (jpeg, png, webp, gif). 
+      // Si envías un PDF aquí, fallará.
+      const isImage = file.mimeType.startsWith('image/');
+      
+      if (isImage) {
+        userContent.push({
+          type: "image_url",
+          image_url: {
+            // Asegúrate que file.data sea base64 puro. Añadimos el prefijo si falta.
+            url: file.data.startsWith('data:') 
+              ? file.data 
+              : `data:${file.mimeType};base64,${file.data}`,
+          },
+        });
+      } else {
+        console.warn("Omitiendo archivo no-imagen (OpenAI no lee PDFs nativamente en este modo):", file.mimeType);
+        userContent.push({
+          type: "text",
+          text: `[NOTA: Se adjuntó un archivo ${file.mimeType} que no se puede visualizar directamente. Basar análisis en los metadatos proporcionados].`
+        });
+      }
     });
   }
 
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: { parts: parts },
-      config: {
-        systemInstruction: SYSTEM_INSTRUCTION,
-        responseMimeType: "application/json",
-        responseSchema: auditResponseSchema,
-        temperature: 0, 
-      },
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o", // Usar gpt-4o para mejor visión
+      messages: [
+        { role: "system", content: SYSTEM_INSTRUCTION },
+        { role: "user", content: userContent },
+      ],
+      temperature: 0,
+      // "json_schema" garantiza que la respuesta cumpla tu estructura EXACTA
+      response_format: {
+        type: "json_schema",
+        json_schema: {
+          name: "audit_report",
+          strict: true,
+          schema: {
+            type: "object",
+            properties: {
+              materialClassification: { type: "string", description: "Resumen del material" },
+              recommendedFamily: { type: "string", description: "Familia industrial" },
+              directContactVerdict: { 
+                type: "string", 
+                enum: ["APTO", "APTO_CONDICIONADO", "NO_APTO", "NO_APLICA"] 
+              },
+              indirectContactVerdict: { 
+                type: "string", 
+                enum: ["APTO", "APTO_CONDICIONADO", "NO_APTO", "NO_APLICA"] 
+              },
+              technicalJustification: { type: "string" },
+              detectedRisks: { 
+                type: "array", 
+                items: { type: "string" } 
+              },
+              missingDocumentation: { 
+                type: "array", 
+                items: { type: "string" } 
+              },
+              recommendations: { 
+                type: "array", 
+                items: { type: "string" } 
+              },
+              finalConclusion: { type: "string" }
+            },
+            required: [
+              "materialClassification",
+              "recommendedFamily",
+              "directContactVerdict",
+              "indirectContactVerdict",
+              "technicalJustification",
+              "detectedRisks",
+              "missingDocumentation",
+              "recommendations",
+              "finalConclusion"
+            ],
+            additionalProperties: false
+          }
+        }
+      }
     });
 
-    if (response.text) {
-      return JSON.parse(response.text) as FoodSafetyAuditReport;
-    } else {
-      throw new Error("No se pudo generar el reporte técnico.");
-    }
+    const content = completion.choices[0].message.content;
+    if (!content) throw new Error("Respuesta vacía de OpenAI");
+    
+    return JSON.parse(content) as FoodSafetyAuditReport;
+
   } catch (error) {
-    console.error("IndustrIA Error:", error);
+    console.error("Error en servicio OpenAI:", error);
     throw error;
   }
 };
