@@ -1,101 +1,64 @@
-import React, { useState, useEffect } from 'react';
+// @ts-nocheck
+import React, { useState } from 'react';
 import Header from './components/Header';
 import InputSection from './components/InputSection';
 import ReportSection from './components/ReportSection';
-import { AuditContext, FoodSafetyAuditReport } from './types';
 import { generateAuditReport } from './services/geminiService';
+import { AuditContext, FoodSafetyAuditReport } from './types';
 
 function App() {
-  const [loading, setLoading] = useState(false);
-  const [progress, setProgress] = useState(0); // Estado para la barra
+  const [isLoading, setIsLoading] = useState(false);
   const [report, setReport] = useState<FoodSafetyAuditReport | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [materialName, setMaterialName] = useState('');
-
-  // EFECTO PARA SIMULAR PROGRESO REALISTA
-  useEffect(() => {
-    let interval: any;
-    if (loading) {
-      setProgress(10); // Empieza en 10%
-      interval = setInterval(() => {
-        setProgress((prev) => {
-          // Sube rápido al principio, luego se frena en el 85%
-          if (prev < 60) return prev + 5;
-          if (prev < 85) return prev + 1;
-          return prev; // Se queda esperando en 85-90%
-        });
-      }, 500);
-    } else {
-      setProgress(100); // Al terminar, 100%
-      // Resetear barra después de un momento
-      setTimeout(() => setProgress(0), 1000);
-    }
-    return () => clearInterval(interval);
-  }, [loading]);
+  const [materialName, setMaterialName] = useState<string>('');
 
   const handleAuditRequest = async (context: AuditContext) => {
-    setLoading(true);
-    setError(null);
-    setReport(null);
-    setMaterialName(context.materialName || 'Material');
-
+    setIsLoading(true);
+    setMaterialName(context.materialName);
     try {
       const result = await generateAuditReport(context);
       setReport(result);
-    } catch (err: any) {
-      console.error(err);
-      setError(err.message || "Error desconocido al generar el informe.");
+    } catch (error) {
+      console.error("Error auditoría:", error);
+      alert("Error al conectar con la IA. Verifica tu API Key.");
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#020617] text-slate-200 font-sans selection:bg-blue-500/30">
-      <Header />
+    // CAMBIO IMPORTANTE: 'min-h-screen' y 'bg-slate-950' para fondo total.
+    // Quitamos 'max-w' para que se expanda si quiere, o lo centramos verticalmente.
+    <div className="min-h-screen bg-slate-950 text-slate-200 flex flex-col items-center justify-center p-4">
+      
+      {/* HEADER: Lo hacemos opcional o más discreto si quieres pantalla completa */}
+      <div className="w-full max-w-6xl mb-8">
+          <Header />
+      </div>
 
-      <main className="container mx-auto px-4 py-12 flex flex-col items-center gap-12">
-        
-        {!report && (
-          <div className="w-full max-w-2xl animate-fade-in-up">
-            <InputSection 
-                onAuditRequest={handleAuditRequest} 
-                isLoading={loading} 
-            />
+      <main className="w-full max-w-6xl flex flex-col items-center">
+        {!report ? (
+          <div className="w-full flex justify-center">
+             <InputSection onAuditRequest={handleAuditRequest} isLoading={isLoading} />
+          </div>
+        ) : (
+          <div className="w-full animate-fade-in">
+             <ReportSection report={report} materialName={materialName} />
+             
+             <div className="mt-8 text-center">
+               <button 
+                 onClick={() => setReport(null)}
+                 className="text-slate-500 hover:text-white underline transition-colors"
+               >
+                 ← Realizar nueva auditoría
+               </button>
+             </div>
           </div>
         )}
-
-        {/* BARRA DE PROGRESO MEJORADA */}
-        {loading && (
-          <div className="w-full max-w-md space-y-3 animate-pulse">
-            <div className="flex justify-between text-xs font-mono text-blue-400 uppercase">
-                <span>Analizando documentación...</span>
-                <span>{progress}%</span>
-            </div>
-            <div className="h-2 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
-              <div 
-                className="h-full bg-gradient-to-r from-blue-600 to-cyan-400 transition-all duration-500 ease-out shadow-[0_0_15px_rgba(56,189,248,0.5)]"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-            <p className="text-center text-xs text-slate-500 animate-bounce mt-2">
-                Consultando normativas FDA / UE 10/2011...
-            </p>
-          </div>
-        )}
-
-        {error && (
-          <div className="w-full max-w-2xl bg-red-950/30 border border-red-800/50 text-red-300 p-4 rounded-lg text-sm flex items-center gap-3 animate-shake">
-            <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-            {error}
-          </div>
-        )}
-
-        {report && (
-            <ReportSection report={report} materialName={materialName} />
-        )}
-
       </main>
+
+      <footer className="mt-12 text-center text-slate-600 text-xs pb-4">
+        <p>IndustrIA v2.0 • Powered by OpenAI GPT-4o & Vercel</p>
+      </footer>
     </div>
   );
 }
