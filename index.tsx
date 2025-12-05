@@ -1,19 +1,118 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+<!DOCTYPE html>
+<html lang="es" class="scroll-smooth">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+    <meta name="description" content="Sistema de Auditoría Técnica para la Industria Alimentaria. Generación de informes de aptitud y seguridad." />
+    <meta name="theme-color" content="#0f172a" />
+    <title>IndustrIA | Auditoría Técnica Profesional</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+              mono: ['JetBrains Mono', 'monospace'],
+            },
+            colors: {
+              slate: {
+                950: '#020617', 
+              }
+            }
+          }
+        }
+      }
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" defer></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+      body {
+        font-family: 'Inter', sans-serif;
+        background-color: #0f172a;
+        color: #e2e8f0;
+        overflow-x: hidden;
+      }
+      .font-mono {
+        font-family: 'JetBrains Mono', monospace;
+      }
+      
+      /* Scrollbar */
+      textarea::-webkit-scrollbar, div::-webkit-scrollbar {
+        width: 8px;
+      }
+      textarea::-webkit-scrollbar-track, div::-webkit-scrollbar-track {
+        background: #1e293b; 
+      }
+      textarea::-webkit-scrollbar-thumb, div::-webkit-scrollbar-thumb {
+        background: #475569; 
+        border-radius: 4px;
+      }
+      textarea::-webkit-scrollbar-thumb:hover, div::-webkit-scrollbar-thumb:hover {
+        background: #64748b; 
+      }
 
-/* FORZAR PANTALLA COMPLETA REAL */
-:root, html, body, #root {
-  height: 100%;
-  width: 100%;
-  margin: 0;
-  padding: 0;
-  overflow-x: hidden; /* Evitar scroll horizontal */
-  background-color: #020617; /* Color Slate-950 (el fondo oscuro de tu app) */
-}
+      /* Glassmorphism */
+      .glass-panel {
+        background: rgba(30, 41, 59, 0.7);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.4);
+      }
+      
+      .neon-border-focus:focus-within {
+        border-color: #38bdf8;
+        box-shadow: 0 0 15px rgba(56, 189, 248, 0.15);
+      }
 
-/* El contenedor raíz de React también debe ocupar todo */
-#root {
-  display: flex;
-  flex-direction: column;
+      .scan-line {
+        width: 100%;
+        height: 2px;
+        background: #38bdf8;
+        position: absolute;
+        top: 0;
+        left: 0;
+        animation: scan 2s infinite linear;
+        opacity: 0;
+        box-shadow: 0 0 10px #38bdf8;
+      }
+
+      .animate-fade-in {
+        animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      }
+      
+      @keyframes scan {
+        0% { top: 0%; opacity: 0; }
+        10% { opacity: 1; }
+        90% { opacity: 1; }
+        100% { top: 100%; opacity: 0; }
+      }
+
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0"
+  }
 }
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body>
+    <!-- Background Elements -->
+    <div class="fixed top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none">
+        <div class="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-blue-900/10 rounded-full blur-[100px]"></div>
+        <div class="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-indigo-900/10 rounded-full blur-[100px]"></div>
+    </div>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>
