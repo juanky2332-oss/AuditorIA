@@ -11,15 +11,10 @@ const InputSection = ({ onAuditRequest, isLoading }) => {
   const onDrop = useCallback((acceptedFiles) => {
     acceptedFiles.forEach((file) => {
       const reader = new FileReader();
-      reader.onabort = () => console.log('Lectura abortada');
-      reader.onerror = () => console.log('Error leyendo archivo');
       reader.onload = () => {
         const binaryStr = reader.result;
         if (typeof binaryStr === 'string') {
-             setFiles((prev) => [...prev, {
-                 mimeType: file.type,
-                 data: binaryStr
-             }]);
+             setFiles((prev) => [...prev, { mimeType: file.type, data: binaryStr }]);
         }
       };
       reader.readAsDataURL(file);
@@ -28,10 +23,7 @@ const InputSection = ({ onAuditRequest, isLoading }) => {
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ 
       onDrop,
-      accept: {
-          'image/*': [],
-          'application/pdf': []
-      },
+      accept: { 'image/*': [], 'application/pdf': [] },
       maxFiles: 3
   });
 
@@ -41,76 +33,57 @@ const InputSection = ({ onAuditRequest, isLoading }) => {
 
   const handleSubmit = () => {
     if (isLoading) return;
-
     if (!materialName && !intendedUse && !technicalData && files.length === 0) {
         alert("Por favor, introduzca algún dato o suba un archivo.");
         return;
     }
-
-    onAuditRequest({
-      materialName,
-      intendedUse,
-      technicalData,
-      filesData: files
-    });
+    onAuditRequest({ materialName, intendedUse, technicalData, filesData: files });
   };
 
   return (
-    <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-8 shadow-2xl backdrop-blur-sm">
-      
+    <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-8 shadow-2xl">
       <div className="mb-8">
-        <h2 className="text-xl font-bold text-blue-400 flex items-center gap-3">
-            <span className="bg-blue-500/10 text-blue-400 text-xs font-mono px-2 py-1 rounded border border-blue-500/20">01.</span>
-            DATOS DE ENTRADA
-        </h2>
+        <h2 className="text-xl font-bold text-blue-400">01. DATOS DE ENTRADA</h2>
       </div>
 
       <div className="space-y-6">
-        
         <div className="grid md:grid-cols-2 gap-6">
             <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Material / Ref</label>
+                <label className="text-xs font-bold text-slate-500 uppercase">Material / Ref</label>
                 <input 
                     type="text" 
                     value={materialName}
                     onChange={(e) => setMaterialName(e.target.value)}
-                    placeholder="Ej. Banda Modular S-200"
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-slate-200 outline-none focus:border-blue-500 transition-all"
+                    placeholder="Ej. Banda Modular"
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-slate-200"
                     disabled={isLoading}
                 />
             </div>
             <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Uso Previsto</label>
+                <label className="text-xs font-bold text-slate-500 uppercase">Uso Previsto</label>
                 <input 
                     type="text" 
                     value={intendedUse}
                     onChange={(e) => setIntendedUse(e.target.value)}
-                    placeholder="Ej. Transporte de producto terminado"
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-slate-200 outline-none focus:border-blue-500 transition-all"
+                    placeholder="Ej. Transporte"
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-slate-200"
                     disabled={isLoading}
                 />
             </div>
         </div>
 
         <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Documentación</label>
-            
-            <div {...getRootProps()} className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${isDragActive ? 'border-blue-500 bg-blue-500/10' : 'border-slate-700 hover:border-blue-500/50'}`}>
+            <label className="text-xs font-bold text-slate-500 uppercase">Documentación</label>
+            <div {...getRootProps()} className="border-2 border-dashed rounded-xl p-8 text-center cursor-pointer border-slate-700 hover:border-blue-500">
                 <input {...getInputProps()} disabled={isLoading} />
-                <div className="flex flex-col items-center gap-3 text-slate-500">
-                    <svg className="w-8 h-8 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                    <p className="font-medium">{isDragActive ? "Suelta los archivos" : "Arrastre PDF o Imágenes aquí"}</p>
-                </div>
+                <p className="text-slate-500">Arrastra archivos aquí</p>
             </div>
-
             {files.length > 0 && (
                 <div className="space-y-2 mt-3">
                     {files.map((file, index) => (
-                        <div key={index} className="flex items-center justify-between bg-slate-800 px-4 py-2 rounded text-sm border border-slate-700">
-                            <span className="text-blue-300 truncate max-w-[200px]">
-                                {file.mimeType === 'application/pdf' ? 'Documento PDF' : 'Imagen'} {index + 1}
-                            </span>
-                            <button onClick={() => handleRemoveFile(index)} className="text-slate-500 hover:text-red-400 text-xs font-bold uppercase" disabled={isLoading}>Eliminar</button>
+                        <div key={index} className="flex justify-between bg-slate-800 px-4 py-2 rounded text-sm border border-slate-700">
+                            <span className="text-blue-300">Archivo {index + 1}</span>
+                            <button onClick={() => handleRemoveFile(index)} className="text-red-400 text-xs font-bold">ELIMINAR</button>
                         </div>
                     ))}
                 </div>
@@ -118,12 +91,11 @@ const InputSection = ({ onAuditRequest, isLoading }) => {
         </div>
 
         <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Observaciones</label>
+            <label className="text-xs font-bold text-slate-500 uppercase">Observaciones</label>
             <textarea 
                 value={technicalData}
                 onChange={(e) => setTechnicalData(e.target.value)}
-                placeholder="Detalles extra"
-                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-slate-200 outline-none focus:border-blue-500 transition-all h-24 resize-none"
+                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-slate-200 h-24"
                 disabled={isLoading}
             />
         </div>
@@ -131,22 +103,10 @@ const InputSection = ({ onAuditRequest, isLoading }) => {
         <button 
             onClick={handleSubmit}
             disabled={isLoading}
-            className={`w-full py-4 rounded-lg font-bold text-sm uppercase tracking-widest transition-all shadow-lg
-                ${isLoading ? 'bg-slate-700 text-slate-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-500 text-white'}`}
+            className="w-full py-4 rounded-lg font-bold text-sm uppercase bg-blue-600 hover:bg-blue-500 text-white"
         >
-            {isLoading ? (
-                <div className="flex items-center justify-center gap-2">
-                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        ircle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <span>Analizando</span>
-                </div>
-            ) : (
-                <span>INICIAR AUDITORÍA TÉCNICA</span>
-            )}
+            {isLoading ? "ANALIZANDO..." : "INICIAR AUDITORÍA"}
         </button>
-
       </div>
     </div>
   );
