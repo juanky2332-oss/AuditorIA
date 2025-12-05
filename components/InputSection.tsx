@@ -47,7 +47,8 @@ const InputSection: React.FC<InputSectionProps> = ({ onAuditRequest, isLoading }
   };
 
   return (
-    <div className="w-full bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden">
+    // AQUÍ ESTÁ EL CAMBIO: 'mx-auto' para centrar y 'w-full max-w-3xl' para controlar el ancho
+    <div className="w-full max-w-3xl mx-auto bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden">
       
       <div className="bg-slate-950 px-8 py-6 border-b border-slate-800 flex items-center gap-4">
         <div>
