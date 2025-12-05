@@ -19,46 +19,45 @@ function App() {
       setReport(result);
     } catch (error) {
       console.error("Error auditoría:", error);
-      alert("Error al conectar con la IA. Verifica tu API Key.");
+      alert("Error al conectar con la IA.");
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    // CAMBIO IMPORTANTE: 'min-h-screen' y 'bg-slate-950' para fondo total.
-    // Quitamos 'max-w' para que se expanda si quiere, o lo centramos verticalmente.
-    <div className="min-h-screen bg-slate-950 text-slate-200 flex flex-col items-center justify-center p-4">
+    // CAMBIO CLAVE: min-h-screen, w-full, flex para centrar.
+    // QUITADO cualquier padding (p-4) de este contenedor principal.
+    <div className="min-h-screen w-full bg-slate-950 text-slate-200 flex flex-col items-center py-10">
       
-      {/* HEADER: Lo hacemos opcional o más discreto si quieres pantalla completa */}
-      <div className="w-full max-w-6xl mb-8">
-          <Header />
-      </div>
+      {/* Contenedor interno para limitar el ancho solo del contenido, no del fondo */}
+      <div className="w-full max-w-5xl px-4 flex flex-col gap-8">
+        
+        <Header />
 
-      <main className="w-full max-w-6xl flex flex-col items-center">
-        {!report ? (
-          <div className="w-full flex justify-center">
+        <main className="w-full">
+          {!report ? (
              <InputSection onAuditRequest={handleAuditRequest} isLoading={isLoading} />
-          </div>
-        ) : (
-          <div className="w-full animate-fade-in">
-             <ReportSection report={report} materialName={materialName} />
-             
-             <div className="mt-8 text-center">
-               <button 
-                 onClick={() => setReport(null)}
-                 className="text-slate-500 hover:text-white underline transition-colors"
-               >
-                 ← Realizar nueva auditoría
-               </button>
-             </div>
-          </div>
-        )}
-      </main>
+          ) : (
+            <div className="animate-fade-in space-y-8">
+               <ReportSection report={report} materialName={materialName} />
+               <div className="text-center">
+                 <button 
+                   onClick={() => setReport(null)}
+                   className="text-slate-500 hover:text-white underline"
+                 >
+                   ← Nueva Auditoría
+                 </button>
+               </div>
+            </div>
+          )}
+        </main>
 
-      <footer className="mt-12 text-center text-slate-600 text-xs pb-4">
-        <p>IndustrIA v2.0 • Powered by OpenAI GPT-4o & Vercel</p>
-      </footer>
+        <footer className="text-center text-slate-600 text-xs py-4 border-t border-slate-900 mt-auto">
+          <p>IndustrIA v2.0 • Powered by OpenAI</p>
+        </footer>
+
+      </div>
     </div>
   );
 }
