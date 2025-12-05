@@ -26,38 +26,40 @@ function App() {
   };
 
   return (
-    // CAMBIO CLAVE: min-h-screen, w-full, flex para centrar.
-    // QUITADO cualquier padding (p-4) de este contenedor principal.
-    <div className="min-h-screen w-full bg-slate-950 text-slate-200 flex flex-col items-center py-10">
-      
-      {/* Contenedor interno para limitar el ancho solo del contenido, no del fondo */}
-      <div className="w-full max-w-5xl px-4 flex flex-col gap-8">
-        
-        <Header />
+    <div className="min-h-screen w-full bg-slate-950 text-slate-200 flex flex-col font-sans selection:bg-blue-500/30">
 
-        <main className="w-full">
-          {!report ? (
-             <InputSection onAuditRequest={handleAuditRequest} isLoading={isLoading} />
-          ) : (
-            <div className="animate-fade-in space-y-8">
-               <ReportSection report={report} materialName={materialName} />
-               <div className="text-center">
-                 <button 
-                   onClick={() => setReport(null)}
-                   className="text-slate-500 hover:text-white underline"
-                 >
-                   ← Nueva Auditoría
-                 </button>
-               </div>
+      {/* Header Full Width */}
+      <Header />
+
+      {/* Main Content Area - Wider and Responsive */}
+      <main className="flex-grow w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-8">
+
+        {!report ? (
+          <div className="w-full max-w-5xl mx-auto">
+            <InputSection onAuditRequest={handleAuditRequest} isLoading={isLoading} />
+          </div>
+        ) : (
+          <div className="animate-fade-in space-y-8 w-full">
+            <ReportSection report={report} materialName={materialName} />
+            <div className="text-center py-6">
+              <button
+                onClick={() => setReport(null)}
+                className="group text-slate-500 hover:text-white transition-colors duration-300 flex items-center justify-center gap-2 mx-auto"
+              >
+                <span className="group-hover:-translate-x-1 transition-transform duration-300">←</span>
+                Nueva Auditoría
+              </button>
             </div>
-          )}
-        </main>
+          </div>
+        )}
 
-        <footer className="text-center text-slate-600 text-xs py-4 border-t border-slate-900 mt-auto">
-          <p>IndustrIA v2.0 • Powered by OpenAI</p>
-        </footer>
+      </main>
 
-      </div>
+      {/* Footer Full Width */}
+      <footer className="w-full text-center text-slate-600 text-xs py-6 border-t border-slate-900 bg-slate-950/50 backdrop-blur-sm">
+        <p>IndustrIA v2.0 • Powered by OpenAI • <span className="text-slate-700">Audit System</span></p>
+      </footer>
+
     </div>
   );
 }
