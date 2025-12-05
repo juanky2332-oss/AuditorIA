@@ -60,7 +60,7 @@ const InputSection: React.FC<InputSectionProps> = ({ onAuditRequest, isLoading }
     });
   };
 
-  // CONTENIDO DEL BOTÓN (Definido fuera para evitar errores de sintaxis)
+  // CONTENIDO DEL BOTÓN (Corrección del SVG)
   let buttonContent;
   if (isLoading) {
       buttonContent = (
@@ -153,7 +153,7 @@ const InputSection: React.FC<InputSectionProps> = ({ onAuditRequest, isLoading }
             />
         </div>
 
-        {/* BOTÓN SIN CONDICIONALES COMPLEJOS DENTRO */}
+        {/* BOTÓN */}
         <button 
             onClick={handleSubmit}
             disabled={isLoading}
