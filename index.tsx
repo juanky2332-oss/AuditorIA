@@ -1,15 +1,19 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import App from './App';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-const rootElement = document.getElementById('root');
-if (!rootElement) {
-  throw new Error("Could not find root element to mount to");
+/* FORZAR PANTALLA COMPLETA REAL */
+:root, html, body, #root {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden; /* Evitar scroll horizontal */
+  background-color: #020617; /* Color Slate-950 (el fondo oscuro de tu app) */
 }
 
-const root = ReactDOM.createRoot(rootElement);
-root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
+/* El contenedor raíz de React también debe ocupar todo */
+#root {
+  display: flex;
+  flex-direction: column;
+}
