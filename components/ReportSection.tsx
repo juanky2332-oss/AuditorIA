@@ -1,4 +1,5 @@
 import React from 'react';
+import jsPDF from 'jspdf';
 import { FoodSafetyAuditReport, AuditResultType } from '../types';
 
 interface ReportSectionProps {
@@ -8,6 +9,251 @@ interface ReportSectionProps {
 
 const ReportSection: React.FC<ReportSectionProps> = ({ report, materialName }) => {
   
+  const generateProfessionalPDF = () => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 15;
+    const contentWidth = pageWidth - (margin * 2);
+    let yPos = 15;
+
+    // ===== CABECERA =====
+    doc.setFontSize(20);
+    doc.setTextColor(41, 128, 185);
+    doc.setFont("helvetica", "bold");
+    doc.text("IndustrIA", margin, yPos);
+    
+    yPos += 8;
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    doc.setFont("helvetica", "normal");
+    doc.text("Auditoría Técnica de Seguridad Alimentaria", margin, yPos);
+    
+    yPos += 2;
+    doc.setFontSize(9);
+    doc.text(`Murcia, España • ${new Date().toLocaleDateString('es-ES')}`, margin, yPos);
+
+    yPos += 10;
+    doc.setDrawColor(200, 200, 200);
+    doc.line(margin, yPos, pageWidth - margin, yPos);
+    yPos += 8;
+
+    // ===== SECCIÓN 1: INFORMACIÓN GENERAL =====
+    doc.setFontSize(12);
+    doc.setTextColor(0, 0, 0);
+    doc.setFont("helvetica", "bold");
+    doc.text("1. INFORMACIÓN DEL MATERIAL", margin, yPos);
+    yPos += 7;
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(50, 50, 50);
+    
+    const infoLines = [
+      `Material Detectado: ${report.materialClassification}`,
+      `Familia Recomendada: ${report.recommendedFamily}`,
+      `ID Auditoría: ${materialName || 'No especificado'}`,
+      `Generado: ${new Date().toLocaleString('es-ES')}`
+    ];
+    
+    infoLines.forEach(line => {
+      doc.text(line, margin + 5, yPos);
+      yPos += 5;
+    });
+
+    yPos += 5;
+
+    // ===== SECCIÓN 2: VEREDICTOS =====
+    doc.setFontSize(12);
+    doc.setTextColor(0, 0, 0);
+    doc.setFont("helvetica", "bold");
+    doc.text("2. DICTAMEN DE APTITUD", margin, yPos);
+    yPos += 7;
+
+    // Caja Contacto Directo
+    doc.setFillColor(240, 248, 255);
+    doc.rect(margin, yPos - 3, contentWidth, 12, 'F');
+    doc.setDrawColor(41, 128, 185);
+    doc.rect(margin, yPos - 3, contentWidth, 12);
+    
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(0, 0, 0);
+    doc.text("CONTACTO DIRECTO (Alimento):", margin + 3, yPos + 2);
+    
+    // Color del veredicto
+    const directColor = report.directContactVerdict === AuditResultType.APTO 
+      ? [0, 150, 0] 
+      : report.directContactVerdict === AuditResultType.NO_APTO 
+      ? [200, 0, 0]
+      : [200, 120, 0];
+    
+    doc.setTextColor(...directColor);
+    doc.setFont("helvetica", "bolditalic");
+    doc.setFontSize(11);
+    doc.text(report.directContactVerdict, pageWidth - margin - 40, yPos + 2);
+    
+    yPos += 15;
+
+    // Caja Contacto Indirecto
+    doc.setFillColor(240, 248, 255);
+    doc.rect(margin, yPos - 3, contentWidth, 12, 'F');
+    doc.setDrawColor(41, 128, 185);
+    doc.rect(margin, yPos - 3, contentWidth, 12);
+    
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(0, 0, 0);
+    doc.text("CONTACTO INDIRECTO (Entorno):", margin + 3, yPos + 2);
+    
+    const indirectColor = report.indirectContactVerdict === AuditResultType.APTO 
+      ? [0, 150, 0]
+      : report.indirectContactVerdict === AuditResultType.NO_APTO
+      ? [200, 0, 0]
+      : [200, 120, 0];
+    
+    doc.setTextColor(...indirectColor);
+    doc.setFont("helvetica", "bolditalic");
+    doc.setFontSize(11);
+    doc.text(report.indirectContactVerdict, pageWidth - margin - 40, yPos + 2);
+    
+    yPos += 18;
+
+    // ===== SECCIÓN 3: JUSTIFICACIÓN TÉCNICA =====
+    doc.setFontSize(12);
+    doc.setTextColor(0, 0, 0);
+    doc.setFont("helvetica", "bold");
+    doc.text("3. JUSTIFICACIÓN TÉCNICA", margin, yPos);
+    yPos += 7;
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(30, 30, 30);
+    
+    const justificationLines = doc.splitTextToSize(report.technicalJustification, contentWidth - 5);
+    doc.text(justificationLines, margin + 3, yPos);
+    yPos += (justificationLines.length * 4) + 8;
+
+    // Verificar si necesitamos nueva página
+    if (yPos > 200) {
+      doc.addPage();
+      yPos = 15;
+    }
+
+    // ===== SECCIÓN 4: RIESGOS =====
+    doc.setFontSize(12);
+    doc.setTextColor(200, 50, 50);
+    doc.setFont("helvetica", "bold");
+    doc.text("4. RIESGOS DETECTADOS", margin, yPos);
+    yPos += 7;
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(0, 0, 0);
+    
+    if (report.detectedRisks.length > 0) {
+      report.detectedRisks.forEach(risk => {
+        const riskLines = doc.splitTextToSize(`• ${risk}`, contentWidth - 10);
+        doc.text(riskLines, margin + 5, yPos);
+        yPos += (riskLines.length * 4);
+      });
+    } else {
+      doc.setTextColor(100, 100, 100);
+      doc.setFont("helvetica", "italic");
+      doc.text("No se detectaron riesgos críticos.", margin + 5, yPos);
+      yPos += 4;
+    }
+
+    yPos += 8;
+
+    // ===== SECCIÓN 5: DOCUMENTACIÓN FALTANTE =====
+    doc.setFontSize(12);
+    doc.setTextColor(200, 120, 0);
+    doc.setFont("helvetica", "bold");
+    doc.text("5. DOCUMENTACIÓN FALTANTE", margin, yPos);
+    yPos += 7;
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(0, 0, 0);
+    
+    if (report.missingDocumentation.length > 0) {
+      report.missingDocumentation.forEach(doc_item => {
+        const docLines = doc.splitTextToSize(`• ${doc_item}`, contentWidth - 10);
+        doc.text(docLines, margin + 5, yPos);
+        yPos += (docLines.length * 4);
+      });
+    } else {
+      doc.setTextColor(100, 100, 100);
+      doc.setFont("helvetica", "italic");
+      doc.text("Documentación completa.", margin + 5, yPos);
+      yPos += 4;
+    }
+
+    yPos += 8;
+
+    // ===== SECCIÓN 6: RECOMENDACIONES =====
+    if (yPos > 220) {
+      doc.addPage();
+      yPos = 15;
+    }
+
+    doc.setFontSize(12);
+    doc.setTextColor(0, 150, 0);
+    doc.setFont("helvetica", "bold");
+    doc.text("6. RECOMENDACIONES", margin, yPos);
+    yPos += 7;
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(0, 0, 0);
+    
+    report.recommendations.forEach(rec => {
+      const recLines = doc.splitTextToSize(`✓ ${rec}`, contentWidth - 10);
+      doc.text(recLines, margin + 5, yPos);
+      yPos += (recLines.length * 4);
+    });
+
+    yPos += 10;
+
+    // ===== SECCIÓN 7: CONCLUSIÓN FINAL =====
+    if (yPos > 220) {
+      doc.addPage();
+      yPos = 15;
+    }
+
+    doc.setFillColor(230, 245, 250);
+    doc.rect(margin, yPos - 2, contentWidth, 35, 'F');
+    doc.setDrawColor(41, 128, 185);
+    doc.setLineWidth(0.5);
+    doc.rect(margin, yPos - 2, contentWidth, 35);
+
+    doc.setFontSize(12);
+    doc.setTextColor(0, 0, 0);
+    doc.setFont("helvetica", "bold");
+    doc.text("DICTAMEN FINAL DEL AUDITOR", margin + 3, yPos + 2);
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(20, 20, 20);
+    
+    const conclusionLines = doc.splitTextToSize(report.finalConclusion, contentWidth - 8);
+    doc.text(conclusionLines, margin + 3, yPos + 8);
+
+    yPos += 40;
+
+    // ===== PIE DE PÁGINA =====
+    yPos = doc.internal.pageSize.getHeight() - 15;
+    doc.setFontSize(8);
+    doc.setTextColor(150, 150, 150);
+    doc.line(margin, yPos - 5, pageWidth - margin, yPos - 5);
+    doc.text("Documento generado automáticamente por IndustrIA • Auditoría Técnica Profesional", margin, yPos + 2);
+    doc.text("Este informe debe ser revisado por un responsable de calidad antes de su distribución", margin, yPos + 6);
+
+    // Guardar
+    const fileName = `IndustrIA_Auditoria_${materialName || 'Material'}_${new Date().toISOString().split('T')[0]}.pdf`;
+    doc.save(fileName);
+  };
+
   const getStatusColor = (result: AuditResultType) => {
     switch (result) {
       case AuditResultType.APTO:
@@ -23,33 +269,13 @@ const ReportSection: React.FC<ReportSectionProps> = ({ report, materialName }) =
     }
   };
 
-  const handleDownloadPDF = () => {
-    // @ts-ignore
-    if (!window.html2pdf) {
-        alert("Error cargando librería de PDF. Por favor refresque la página.");
-        return;
-    }
-
-    const element = document.getElementById('audit-report-content');
-    const opt = {
-      margin: 10,
-      filename: `Auditoria_${materialName || 'Material'}_${new Date().toISOString().split('T')[0]}.pdf`,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true, backgroundColor: '#0f172a' }, // Maintain dark theme background
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-    };
-
-    // @ts-ignore
-    window.html2pdf().set(opt).from(element).save();
-  };
-
   return (
     <div className="w-full max-w-7xl mx-auto space-y-6">
       
       {/* Action Bar */}
       <div className="flex justify-end animate-fade-in">
         <button 
-            onClick={handleDownloadPDF}
+            onClick={generateProfessionalPDF}
             className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-lg font-bold text-xs uppercase tracking-wider shadow-lg hover:shadow-blue-500/20 transition-all"
         >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
@@ -57,7 +283,7 @@ const ReportSection: React.FC<ReportSectionProps> = ({ report, materialName }) =
         </button>
       </div>
 
-      {/* Report Container (Target for PDF) */}
+      {/* Report Container - Visualización en pantalla (modo oscuro) */}
       <div id="audit-report-content" className="bg-[#0f172a] p-6 rounded-xl animate-fade-in grid grid-cols-1 lg:grid-cols-3 gap-6 border border-slate-800">
         
         {/* Col 1: Verdict & Basic Info */}
